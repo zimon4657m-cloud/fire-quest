@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { MAP_H, MAP_W, findPath, interactionAt, isWalkable, tileAt, type Interaction, type WorldState } from '../logic/world';
-import { createTileTextures, TILE_SIZE } from './textures';
+import { createTileTextures, TILE_FRAMES, TILE_SIZE } from './textures';
 
 export type WorldHooks = {
   getState(): WorldState;
@@ -28,11 +28,17 @@ export class WorldScene extends Phaser.Scene {
     this.hooks = hooks;
   }
 
+  preload(): void {
+    this.load.spritesheet('tiles', 'assets/tiles.png', { frameWidth: 16, frameHeight: 16 });
+  }
+
   create(): void {
     createTileTextures(this);
     for (let y = 0; y < MAP_H; y++) {
       this.tiles[y] = [];
       for (let x = 0; x < MAP_W; x++) {
+        // 素材の木や屋根は背景が透明なので、下に草を敷く
+        this.add.image(x * TILE_SIZE, y * TILE_SIZE, 'tiles', 0).setOrigin(0);
         this.tiles[y][x] = this.add.image(x * TILE_SIZE, y * TILE_SIZE, 'tile-.').setOrigin(0);
       }
     }
@@ -67,7 +73,9 @@ export class WorldScene extends Phaser.Scene {
         let key = `tile-${t}`;
         if ((GATES.has(t) || t === 'D') && !isWalkable(x, y, s)) key = `tile-${t}-closed`;
         if (t === 'F' && s.sideIncomeFlag) key = 'tile-F-flag';
-        this.tiles[y][x].setTexture(key);
+        const frameKey = key.replace('tile-', '');
+        if (frameKey in TILE_FRAMES) this.tiles[y][x].setTexture('tiles', TILE_FRAMES[frameKey]);
+        else this.tiles[y][x].setTexture(key);
       }
     }
   }
