@@ -77,4 +77,11 @@ describe('computeCompass', () => {
     expect(computeCompass(p, g, null, null, 'rabbit', '2026-11-01', C).fit.ok).toBe(true);
     expect(computeCompass(p, g, null, { y: -0.31 }, 'turtle', '2026-11-01', C).fog).toBe(true);
   });
+  it('目標額が0なら noTarget(「届く見込み」と言わない)', () => {
+    expect(run(0, { fullFireTarget: 0 }).saving.status).toBe('noTarget');
+  });
+  it('装備がなければ、自分らしさの針は装備の登録をうながす', () => {
+    const r = computeCompass(profile(), { type: 'fullFire', targetAge: 45 }, null, null, 'turtle', '2026-11-01', C);
+    expect(r.fit.message).toContain('装備屋');
+  });
 });

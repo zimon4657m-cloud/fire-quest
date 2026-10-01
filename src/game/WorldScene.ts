@@ -7,6 +7,8 @@ export type WorldHooks = {
   start: { x: number; y: number };
   onInteract(i: Interaction): void;
   onMoved(x: number, y: number): void;
+  /** 画面(宿屋など)を開いている間は true。マップの操作を止める */
+  isBlocked(): boolean;
 };
 
 const GATES = new Set(['B', 'G', 'P']);
@@ -48,6 +50,8 @@ export class WorldScene extends Phaser.Scene {
     keys?.right.on('down', () => this.move(1, 0));
     keys?.up.on('down', () => this.move(0, -1));
     keys?.down.on('down', () => this.move(0, 1));
+    // 入力欄で矢印キーが効くように、ページ全体の矢印キーを横取りしない
+    this.input.keyboard?.disableGlobalCapture();
     this.input.on('pointerup', (p: Phaser.Input.Pointer) => {
       const wp = cam.getWorldPoint(p.x, p.y);
       this.walkTo(Math.floor(wp.x / TILE_SIZE), Math.floor(wp.y / TILE_SIZE));
@@ -69,6 +73,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   move(dx: number, dy: number): void {
+    if (this.hooks.isBlocked()) return;
     this.queue = [];
     this.bumpAfterQueue = null;
     this.step(dx, dy);
@@ -109,7 +114,7 @@ export class WorldScene extends Phaser.Scene {
 
   /** タップしたマスへ歩く。歩けないマス(建物・人・閉じた門)なら隣まで歩いて体当たりする */
   private walkTo(tx: number, ty: number): void {
-    if (this.moving) return;
+    if (this.moving || this.hooks.isBlocked()) return;
     const s = this.hooks.getState();
     if (isWalkable(tx, ty, s)) {
       this.queue = findPath(this.pos, { x: tx, y: ty }, s) ?? [];

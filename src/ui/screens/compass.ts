@@ -13,6 +13,7 @@ export function renderCompass(onClose: () => void): HTMLElement {
     return h('div', { class: 'panel' }, h('h1', {}, '🧭 羅針盤'), h('p', {}, '宿屋で生活費と目標を記録すると、針が動き出します。'), close);
   }
   const saving = {
+    noTarget: '宿屋で目標額を入れてください',
     badAge: '目標の年齢を見直してください(今の年齢より後にしてください)',
     alreadyEnough: '今の資産だけで目標に届く見込みです',
     onPace: `今の積立(毎月${yen(d.profile.monthlySaving)})で届く見込みです`,

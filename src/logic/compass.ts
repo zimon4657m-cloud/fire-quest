@@ -6,7 +6,7 @@ export type Pace = 'ahead' | 'onTrack' | 'behind';
 export type CompassResult = {
   pace: Pace | null;
   expectedNow: number | null;
-  saving: { status: 'badAge' | 'alreadyEnough' | 'onPace' | 'needMore'; required: number; diff: number };
+  saving: { status: 'noTarget' | 'badAge' | 'alreadyEnough' | 'onPace' | 'needMore'; required: number; diff: number };
   fit: { ok: boolean; message: string };
   fog: boolean;
 };
@@ -62,9 +62,11 @@ export function computeCompass(
     }
   }
 
-  const req = requiredMonthlySaving(total, goalTarget(goal, p), rate, (goal.targetAge - p.age) * 12);
+  const target = goalTarget(goal, p);
+  const req = requiredMonthlySaving(total, target, rate, (goal.targetAge - p.age) * 12);
   let saving: CompassResult['saving'];
-  if (req === null) saving = { status: 'badAge', required: 0, diff: 0 };
+  if (!(target > 0)) saving = { status: 'noTarget', required: 0, diff: 0 };
+  else if (req === null) saving = { status: 'badAge', required: 0, diff: 0 };
   else if (req <= 0) saving = { status: 'alreadyEnough', required: 0, diff: 0 };
   else {
     const diff = req - p.monthlySaving;
@@ -76,9 +78,11 @@ export function computeCompass(
   const j = JOBS[job];
   const fit = {
     ok: !misfit,
-    message: misfit
-      ? `${j.emoji}${j.name}タイプの冒険者にしては、攻めの装備に寄っています`
-      : `${j.emoji}${j.name}タイプらしい装備です`,
+    message: party === null
+      ? '装備屋で装備を登録すると、この針が動きます'
+      : misfit
+        ? `${j.emoji}${j.name}タイプの冒険者にしては、攻めの装備に寄っています`
+        : `${j.emoji}${j.name}タイプらしい装備です`,
   };
 
   return { pace, expectedNow, saving, fit, fog: pace === 'behind' || misfit };

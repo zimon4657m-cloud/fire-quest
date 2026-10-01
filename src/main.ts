@@ -3,6 +3,7 @@ import { CONFIG } from './config';
 import { initStore, getData, isStorageOk, wasCorrupted, update, subscribe } from './app/store';
 import { unlockedGates, GATE_INFO } from './logic/gates';
 import { computeStatus } from './logic/status';
+import { computeExp } from './logic/registration';
 import { computeParty } from './logic/equipment';
 import { computeCompass } from './logic/compass';
 import { bandMessage } from './logic/messages';
@@ -53,7 +54,8 @@ function renderHud(): void {
   const d = getData();
   const status = d.profile ? computeStatus(d.profile, CONFIG) : null;
   const c = currentCompass();
-  hud.render(bandMessage(status, c), c?.fog ?? false);
+  const statusText = status?.ok ? `Lv ${status.level}  HP ${status.hp}/${status.maxHp}  EXP ${computeExp(d)}` : '';
+  hud.render(bandMessage(status, c), c?.fog ?? false, statusText);
 }
 
 export function onInteract(i: Interaction): void {
@@ -97,6 +99,7 @@ function showWorld(): void {
     start: d.player ?? findStart(),
     onInteract,
     onMoved: (x, y) => update((data) => { data.player = { x, y }; }),
+    isBlocked: () => !screen.hidden,
   });
   subscribe(() => { game?.refresh(); renderHud(); });
   renderHud();

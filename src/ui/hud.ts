@@ -8,6 +8,7 @@ const CSS = `
 .hud-fog { position: fixed; inset: 0; z-index: 5; pointer-events: none; opacity: 0; transition: opacity 1s;
   background: radial-gradient(circle at center, rgba(255,255,255,0) 20%, rgba(230,230,235,.85) 75%); }
 .hud-fog.on { opacity: 1; }
+.hud-status { position: fixed; top: calc(12px + env(safe-area-inset-top)); left: 12px; z-index: 10; font-size: 14px; padding: 6px 10px; }
 .hud-band { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 10; }
 .hud-pad { position: fixed; left: 12px; bottom: calc(110px + env(safe-area-inset-bottom)); z-index: 10;
   display: grid; grid-template-columns: repeat(3, 52px); grid-template-rows: repeat(3, 52px); gap: 4px; }
@@ -20,6 +21,7 @@ export function mountHud(handlers: { onCompass(): void; onMove(dx: number, dy: n
   compass.onclick = handlers.onCompass;
   const fog = h('div', { class: 'hud-fog' });
   const band = h('div', { class: 'hud-band window' });
+  const status = h('div', { class: 'hud-status window' });
   const pad = h('div', { class: 'hud-pad' });
   const cells: [string, number, number, string][] = [
     ['', 0, 0, ''], ['▲', 0, -1, '上'], ['', 0, 0, ''],
@@ -32,10 +34,12 @@ export function mountHud(handlers: { onCompass(): void; onMove(dx: number, dy: n
     b.onclick = () => handlers.onMove(dx, dy);
     pad.append(b);
   }
-  root.replaceChildren(h('style', {}, CSS), fog, compass, pad, band);
+  root.replaceChildren(h('style', {}, CSS), fog, status, compass, pad, band);
   return {
-    render(text: string, isFog: boolean) {
+    render(text: string, isFog: boolean, statusText: string) {
       band.textContent = text;
+      status.textContent = statusText;
+      status.hidden = statusText === '';
       fog.classList.toggle('on', isFog);
       compass.classList.toggle('shake', isFog);
     },

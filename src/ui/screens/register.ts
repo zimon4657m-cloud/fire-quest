@@ -1,8 +1,8 @@
-import type { Profile } from '../../types';
+import type { GoalType, Profile } from '../../types';
 import { CONFIG } from '../../config';
 import { getData, replaceAll, update } from '../../app/store';
-import { defaultFireTargets, totalAssets } from '../../logic/status';
-import { makePlan } from '../../logic/compass';
+import { defaultFireTargets, goalTarget } from '../../logic/status';
+import { applyRegistration } from '../../logic/registration';
 import { GATE_INFO, unlockedGates } from '../../logic/gates';
 import { exportJson, importJson, InvalidSaveError } from '../../logic/storage';
 import { field, h, numberInput, readNumber, todayISO } from '../dom';
@@ -25,6 +25,14 @@ export function renderRegister(onDone: (opened: string[]) => void): HTMLElement 
   const d = getData();
   const p = d.profile;
   const form = h('form', {});
+  const goalSelect = h('select', { name: 'goalType' },
+    h('option', { value: 'sideFire' }, 'サイドFIRE(働き方を選べる状態)'),
+    h('option', { value: 'fullFire' }, '完全FIRE(働かなくても暮らせる状態)'),
+    h('option', { value: 'amountOnly' }, '資産額の目標だけ(完全FIREの目標額の欄を使います)'),
+  );
+  goalSelect.value = d.goal?.type ?? 'sideFire';
+  const targetAge = numberInput('targetAge', d.goal?.targetAge ?? null, { step: '1', min: '1' });
+  form.append(field('ゴール', goalSelect), field('目標の年齢', targetAge, '変えると、羅針盤の予定線をその日から引き直します'));
   for (const f of FIELDS) {
     const init = p ? (p[f.name] as number | null) : f.name === 'emergencyMonths' ? 6 : null;
     form.append(field(f.label + (f.required ? '' : '(任意)'), numberInput(f.name, init), f.note));
@@ -54,22 +62,18 @@ export function renderRegister(onDone: (opened: string[]) => void): HTMLElement 
       if (v !== null && (!Number.isFinite(v) || v < 0)) { err.textContent = `${f.label}は0以上の数字で入れてください`; return; }
       values[f.name] = v;
     }
+    const age = Number(targetAge.value);
+    if (!(age > 0)) { err.textContent = '目標の年齢を入れてください'; return; }
+    const goal = { type: goalSelect.value as GoalType, targetAge: age };
     const next: Profile = {
       age: values.age!, monthlyExpense: values.monthlyExpense!, cash: values.cash!, investments: values.investments!,
       otherAssets: values.otherAssets ?? 0, monthlySaving: values.monthlySaving!, sideIncome: values.sideIncome ?? 0,
       emergencyMonths: values.emergencyMonths!, expectedReturn: values.expectedReturn,
       sideFireTarget: values.sideFireTarget!, fullFireTarget: values.fullFireTarget!, vow: vow.value.slice(0, 50),
     };
+    if (!(goalTarget(goal, next) > 0)) { err.textContent = '選んだゴールの目標額を入れてください(0より大きい金額)'; return; }
     const before = unlockedGates(d.profile, CONFIG);
-    update((data) => {
-      const goal = data.goal!;
-      const targetChanged = !data.plan
-        || data.plan.targetAge !== goal.targetAge
-        || data.plan.targetAmount !== (goal.type === 'sideFire' ? next.sideFireTarget : next.fullFireTarget);
-      data.profile = next;
-      if (targetChanged) data.plan = makePlan(next, goal, todayISO(), CONFIG);
-      data.history.push({ date: todayISO(), totalAssets: totalAssets(next), cash: next.cash });
-    });
+    update((data) => applyRegistration(data, next, goal, todayISO(), CONFIG));
     const after = unlockedGates(next, CONFIG);
     onDone([...after].filter((g) => !before.has(g)).map((g) => GATE_INFO[g].name));
   };
