@@ -14,6 +14,9 @@ import { h, todayISO } from './ui/dom';
 import { renderDiagnosis } from './ui/screens/diagnosis';
 import { renderRegister } from './ui/screens/register';
 import { renderCard } from './ui/screens/card';
+import { renderEquipment } from './ui/screens/equipment';
+import { renderBoss } from './ui/screens/boss';
+import { renderCompass } from './ui/screens/compass';
 
 const screen = document.getElementById('screen')!;
 const QUEST_LABELS = { openedAccount: '証券口座を開いた', setupNisa: 'NISAの積立を設定した', recordedExpense: '生活費を記録した' };
@@ -77,8 +80,10 @@ export function onInteract(i: Interaction): void {
       update((d) => { d.openedChests.push(i.quest); });
       return openScreen(renderCard(`宝箱: ${KNOWLEDGE[i.quest].title}`, KNOWLEDGE[i.quest].body, back));
     }
-    default:
-      return; // shop / cave は Task 12 で割り当てる
+    case 'shop':
+      return openScreen(renderEquipment(back));
+    case 'cave':
+      return openScreen(renderBoss(back));
   }
 }
 
@@ -86,7 +91,7 @@ function showWorld(): void {
   closeScreen();
   if (game) return;
   const d = getData();
-  hud = mountHud({ onCompass: () => {}, onMove: (dx, dy) => game?.move(dx, dy) });
+  hud = mountHud({ onCompass: () => openScreen(renderCompass(closeScreen)), onMove: (dx, dy) => game?.move(dx, dy) });
   game = createGame(document.getElementById('game')!, {
     getState: worldState,
     start: d.player ?? findStart(),
