@@ -1,4 +1,5 @@
-import { h } from './dom';
+import type { Roadmap } from '../logic/roadmap';
+import { h, manYen } from './dom';
 
 const CSS = `
 .hud-compass { position: fixed; top: calc(12px + env(safe-area-inset-top)); right: 12px; z-index: 10;
@@ -12,6 +13,17 @@ const CSS = `
 .hud-band { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 10; }
 .hud-pad { position: fixed; left: 12px; bottom: calc(110px + env(safe-area-inset-bottom)); z-index: 10;
   display: grid; grid-template-columns: repeat(3, 52px); grid-template-rows: repeat(3, 52px); gap: 4px; }
+.hud-road { position: fixed; z-index: 10; right: 12px; top: calc(84px + env(safe-area-inset-top)); bottom: calc(110px + env(safe-area-inset-bottom));
+  width: clamp(220px, 25vw, 320px); overflow-y: auto; cursor: pointer; font-size: 14px; padding: 10px 12px; display: flex; flex-direction: column; }
+.hud-road h2 { font-size: 15px; margin: 0 0 6px; color: var(--gold); }
+.road-list { list-style: none; margin: 0; padding: 0; flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+.road-list li { display: flex; gap: 6px; align-items: baseline; padding: 3px 0 3px 10px; border-left: 3px solid var(--gold); }
+.road-list li .amt { margin-left: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.road-list li.far { opacity: .45; }
+.road-list li.reached .amt::after { content: ' ✅'; }
+.road-list li.here { font-weight: bold; color: #000; background: var(--gold); border-left-color: #fff; border-radius: 4px; }
+.road-next { margin: 8px 0 0; padding-top: 6px; border-top: 1px dashed var(--gold); line-height: 1.5; }
+@media (max-width: 767px) { .hud-road { display: none; } }
 .hud-pad button { font-size: 22px; border-radius: 10px; border: 2px solid #fff; background: rgba(0,0,0,.5); color: #fff; }
 `;
 
@@ -23,6 +35,8 @@ export function mountHud(handlers: { onCompass(): void; onMove(dx: number, dy: n
   const band = h('div', { class: 'hud-band window' });
   const status = h('div', { class: 'hud-status window' });
   const pad = h('div', { class: 'hud-pad' });
+  const road = h('div', { class: 'hud-road window', role: 'button', 'aria-label': '道のりマップ(タップで羅針盤)' });
+  road.onclick = handlers.onCompass;
   const cells: [string, number, number, string][] = [
     ['', 0, 0, ''], ['▲', 0, -1, '上'], ['', 0, 0, ''],
     ['◀', -1, 0, '左'], ['', 0, 0, ''], ['▶', 1, 0, '右'],
@@ -34,9 +48,10 @@ export function mountHud(handlers: { onCompass(): void; onMove(dx: number, dy: n
     b.onclick = () => handlers.onMove(dx, dy);
     pad.append(b);
   }
-  root.replaceChildren(h('style', {}, CSS), fog, status, compass, pad, band);
+  root.replaceChildren(h('style', {}, CSS), fog, status, compass, road, pad, band);
   return {
-    render(text: string, isFog: boolean, statusText: string) {
+    render(text: string, isFog: boolean, statusText: string, roadmap: Roadmap | null) {
+      renderRoad(road, roadmap);
       band.textContent = text;
       status.textContent = statusText;
       status.hidden = statusText === '';
@@ -44,4 +59,23 @@ export function mountHud(handlers: { onCompass(): void; onMove(dx: number, dy: n
       compass.classList.toggle('shake', isFog);
     },
   };
+}
+
+function renderRoad(root: HTMLElement, r: Roadmap | null) {
+  root.hidden = r === null;
+  if (!r) return root.replaceChildren();
+  const list = h('ol', { class: 'road-list' });
+  r.milestones.forEach((m, i) => {
+    const cls = [m.reached ? 'reached' : '', m.far && !m.reached ? 'far' : ''].filter(Boolean).join(' ');
+    const name = `${m.emoji} ${m.name}${m.isGoal ? ' 🎯' : ''}`;
+    const amt = m.id === 'start' ? '' : m.basis === 'cash' ? `現金${manYen(m.amount)}` : manYen(m.amount);
+    list.prepend(h('li', { class: cls }, h('span', {}, name), h('span', { class: 'amt' }, amt)));
+    if (i === r.hereIndex) list.prepend(h('li', { class: 'here' }, h('span', {}, '🧑 いまここ'), h('span', { class: 'amt' }, manYen(r.total))));
+  });
+  const next = r.next
+    ? [`次の目的地: ${r.next.milestone.name}まで あと${manYen(r.next.remaining)}`,
+       r.next.etaAge !== null ? `今のペースなら ${r.next.etaAge}歳ごろ(目安)` : '']
+    : ['すべての目的地に届いています'];
+  root.replaceChildren(h('h2', {}, '🗺️ 道のりマップ'), list,
+    h('p', { class: 'road-next' }, ...next.filter(Boolean).flatMap((t, i) => (i ? [h('br'), t] : [t]))));
 }

@@ -6,6 +6,7 @@ import { computeStatus } from './logic/status';
 import { computeExp } from './logic/registration';
 import { computeParty } from './logic/equipment';
 import { computeCompass } from './logic/compass';
+import { computeRoadmap } from './logic/roadmap';
 import { bandMessage } from './logic/messages';
 import { findStart, type Interaction, type WorldState } from './logic/world';
 import { KNOWLEDGE } from './data/knowledge';
@@ -55,7 +56,8 @@ function renderHud(): void {
   const status = d.profile ? computeStatus(d.profile, CONFIG) : null;
   const c = currentCompass();
   const statusText = status?.ok ? `Lv ${status.level}  HP ${status.hp}/${status.maxHp}  EXP ${computeExp(d)}` : '';
-  hud.render(bandMessage(status, c), c?.fog ?? false, statusText);
+  const roadmap = d.profile && d.goal && status?.ok ? computeRoadmap(d.profile, d.goal, CONFIG) : null;
+  hud.render(bandMessage(status, c), c?.fog ?? false, statusText, roadmap);
 }
 
 export function onInteract(i: Interaction): void {

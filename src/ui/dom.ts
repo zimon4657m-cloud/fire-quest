@@ -8,6 +8,7 @@ export function h<K extends keyof HTMLElementTagNameMap>(
 }
 
 export const yen = (n: number) => `${Math.round(n).toLocaleString('ja-JP')}円`;
+export const manYen = (n: number) => `${(n / 10000).toLocaleString('ja-JP', { maximumFractionDigits: 1 })}万円`;
 
 export function todayISO(): string {
   const d = new Date();
