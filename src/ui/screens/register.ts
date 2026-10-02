@@ -16,7 +16,7 @@ const FIELDS: { name: keyof Profile; label: string; required: boolean; note?: st
   { name: 'investments', label: '株式・投資信託の合計(万円)', required: true, man: true },
   { name: 'otherAssets', label: 'その他の資産(万円)', required: false, man: true, note: 'ゴールドなど' },
   { name: 'monthlySaving', label: '毎月の積立額(万円)', required: true, man: true },
-  { name: 'sideIncome', label: '副業などの月収入(万円)', required: false, man: true },
+  { name: 'sideIncome', label: '副業などの月収入(万円)', required: false, man: true, note: 'サイドFIRE後に働いて得たい月収も含めて入れてください' },
   { name: 'emergencyMonths', label: '生活防衛資金の月数', required: true, note: '初期値は6か月' },
   { name: 'expectedReturn', label: '想定利回り(年率%)', required: false, note: `空欄なら${CONFIG.defaultExpectedReturnPercent}%で計算します。利回りは保証されません` },
   { name: 'sideFireTarget', label: 'サイドFIREの目標額(万円)', required: true, man: true },
@@ -45,7 +45,10 @@ export function renderRegister(onDone: (opened: string[]) => void): HTMLElement 
   form.append(field('最初の誓い(50文字まで)', vow, '例: 45歳で会社を選べる人になる'));
 
   const calc = h('button', { class: 'btn small', type: 'button' }, '生活費からFIRE額を計算');
+  const calcNote = h('p', { class: 'note' });
   calc.onclick = () => {
+    calcNote.textContent = (readNumber(form, 'sideIncome') ?? 0) > 0 ? ''
+      : '副業などの月収入を入れると、サイドFIREの目標額がその分下がります';
     const t = defaultFireTargets((readNumber(form, 'monthlyExpense') ?? 0) * MAN, (readNumber(form, 'sideIncome') ?? 0) * MAN, CONFIG);
     (form.elements.namedItem('fullFireTarget') as HTMLInputElement).value = String(t.full / MAN);
     (form.elements.namedItem('sideFireTarget') as HTMLInputElement).value = String(t.side / MAN);
@@ -53,7 +56,7 @@ export function renderRegister(onDone: (opened: string[]) => void): HTMLElement 
   const err = h('p', { class: 'error' });
   form.append(
     h('p', { class: 'note' }, 'FIRE額の初期値は「年間の支出 × 25」(いわゆる4%ルール)です。米国の過去データをもとにした目安で、将来を保証するものではありません。'),
-    calc, err, h('button', { class: 'btn primary', type: 'submit' }, '冒険の書に記録する'),
+    calc, calcNote, err, h('button', { class: 'btn primary', type: 'submit' }, '冒険の書に記録する'),
   );
 
   form.onsubmit = (e) => {
