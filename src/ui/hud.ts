@@ -18,10 +18,12 @@ const CSS = `
 .hud-road h2 { font-size: 15px; margin: 0 0 6px; color: var(--gold); }
 .road-list { list-style: none; margin: 0; padding: 0; flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
 .road-list li { display: flex; gap: 6px; align-items: baseline; padding: 3px 0 3px 10px; border-left: 3px solid var(--gold); }
+.road-list li .mean { display: block; font-size: 11px; opacity: .8; font-weight: normal; }
 .road-list li .amt { margin-left: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .road-list li.far { opacity: .45; }
 .road-list li.reached .amt::after { content: ' ✅'; }
 .road-list li.here { font-weight: bold; color: #000; background: var(--gold); border-left-color: #fff; border-radius: 4px; }
+.road-foot { font-size: 10px; opacity: .7; line-height: 1.4; margin-top: 4px; }
 .road-next { margin: 8px 0 0; padding-top: 6px; border-top: 1px dashed var(--gold); line-height: 1.5; }
 @media (max-width: 767px) { .hud-road { display: none; } }
 .hud-pad button { font-size: 22px; border-radius: 10px; border: 2px solid #fff; background: rgba(0,0,0,.5); color: #fff; }
@@ -67,9 +69,9 @@ function renderRoad(root: HTMLElement, r: Roadmap | null) {
   const list = h('ol', { class: 'road-list' });
   r.milestones.forEach((m, i) => {
     const cls = [m.reached ? 'reached' : '', m.far && !m.reached ? 'far' : ''].filter(Boolean).join(' ');
-    const name = `${m.emoji} ${m.name}${m.isGoal ? ' 🎯' : ''}`;
+    const name = h('span', {}, `${m.emoji} ${m.name}${m.isGoal ? ' 🎯' : ''}`, h('span', { class: 'mean' }, `(${m.meaning})`));
     const amt = m.id === 'start' ? '' : m.basis === 'cash' ? `現金${manYen(m.amount)}` : manYen(m.amount);
-    list.prepend(h('li', { class: cls }, h('span', {}, name), h('span', { class: 'amt' }, amt)));
+    list.prepend(h('li', { class: cls }, name, h('span', { class: 'amt' }, amt)));
     if (i === r.hereIndex) list.prepend(h('li', { class: 'here' }, h('span', {}, '🧑 いまここ'), h('span', { class: 'amt' }, manYen(r.total))));
   });
   const next = r.next
@@ -77,5 +79,6 @@ function renderRoad(root: HTMLElement, r: Roadmap | null) {
        r.next.etaAge !== null ? `今のペースなら ${r.next.etaAge}歳ごろ(目安)` : '']
     : ['すべての目的地に届いています'];
   root.replaceChildren(h('h2', {}, '🗺️ 道のりマップ'), list,
-    h('p', { class: 'road-next' }, ...next.filter(Boolean).flatMap((t, i) => (i ? [h('br'), t] : [t]))));
+    h('p', { class: 'road-next' }, ...next.filter(Boolean).flatMap((t, i) => (i ? [h('br'), t] : [t]))),
+    h('small', { class: 'road-foot' }, '※「資産が稼ぐ」は4%ルール(資産の年4%を取り崩す)で見た目安です'));
 }

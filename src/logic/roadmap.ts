@@ -8,6 +8,8 @@ export type Milestone = {
   id: MilestoneId;
   emoji: string;
   name: string;
+  /** その地点に着くと、暮らしがどう変わるか(短い言葉) */
+  meaning: string;
   /** その地点の金額。start は 0 */
   amount: number;
   /** 何で判定するか(橋だけ現金) */
@@ -42,22 +44,22 @@ export function computeRoadmap(p: Profile, goal: Goal, cfg: GameConfig): Roadmap
   const total = totalAssets(p);
   const gates = unlockedGates(p, cfg);
   const goalId: MilestoneId = goal.type === 'sideFire' ? 'sideFire' : 'fullFire';
-  const mk = (id: MilestoneId, emoji: string, name: string, amount: number, basis: Milestone['basis'], reached: boolean, far = false): Milestone =>
-    ({ id, emoji, name, amount, basis, reached, isGoal: id === goalId, far });
+  const mk = (id: MilestoneId, emoji: string, name: string, meaning: string, amount: number, basis: Milestone['basis'], reached: boolean, far = false): Milestone =>
+    ({ id, emoji, name, meaning, amount, basis, reached, isGoal: id === goalId, far });
 
   const upper: Milestone[] = [];
   if (p.fullFireTarget > 0) {
-    upper.push(mk('forestGate', '🌲', '森の門', p.fullFireTarget * cfg.gateRatios.forestGate, 'total', gates.has('forestGate')));
-    upper.push(mk('passGate', '⛰️', '峠', p.fullFireTarget * cfg.gateRatios.passGate, 'total', gates.has('passGate')));
-    upper.push(mk('fullFire', '🏰', '完全FIRE宮殿', p.fullFireTarget, 'total', total >= p.fullFireTarget, true));
+    upper.push(mk('forestGate', '🌲', '森の門', '生活費の1割を資産が稼ぐ', p.fullFireTarget * cfg.gateRatios.forestGate, 'total', gates.has('forestGate')));
+    upper.push(mk('passGate', '⛰️', '峠', '生活費の4分の1を資産が稼ぐ', p.fullFireTarget * cfg.gateRatios.passGate, 'total', gates.has('passGate')));
+    upper.push(mk('fullFire', '🏰', '完全FIRE宮殿', '働かなくても暮らせる', p.fullFireTarget, 'total', total >= p.fullFireTarget, true));
   }
-  if (p.sideFireTarget > 0) upper.push(mk('sideFire', '🏘️', 'サイドFIRE街', p.sideFireTarget, 'total', total >= p.sideFireTarget, true));
+  if (p.sideFireTarget > 0) upper.push(mk('sideFire', '🏘️', 'サイドFIRE街', '仕事を自由に選べる', p.sideFireTarget, 'total', total >= p.sideFireTarget, true));
   // 同じ金額なら宮殿を上にする
   upper.sort((a, b) => a.amount - b.amount || (a.id === 'fullFire' ? 1 : b.id === 'fullFire' ? -1 : 0));
 
-  const milestones: Milestone[] = [mk('start', '⚓', '港町(スタート)', 0, 'total', true)];
+  const milestones: Milestone[] = [mk('start', '⚓', '港町', '冒険のスタート', 0, 'total', true)];
   if (p.monthlyExpense > 0) {
-    milestones.push(mk('portBridge', '🌉', '橋(生活防衛資金)', p.monthlyExpense * p.emergencyMonths, 'cash', gates.has('portBridge')));
+    milestones.push(mk('portBridge', '🌉', '橋', `収入が止まっても${p.emergencyMonths}か月暮らせる`, p.monthlyExpense * p.emergencyMonths, 'cash', gates.has('portBridge')));
   }
   milestones.push(...upper);
 

@@ -48,6 +48,11 @@ describe('computeRoadmap', () => {
     expect(r.next?.etaAge).toBeNull();
     expect(r.hereIndex).toBe(2); // 森の門は総資産で届いている
   });
+  it('各地点に暮らしの変化の言葉が付く(橋は防衛資金の月数を使う)', () => {
+    const r = computeRoadmap(profile({ emergencyMonths: 12 }), side, C);
+    expect(r.milestones.find((m) => m.id === 'portBridge')?.meaning).toBe('収入が止まっても12か月暮らせる');
+    expect(r.milestones.every((m) => m.meaning.length > 0)).toBe(true);
+  });
   it('目標額0の地点は出さない', () => {
     expect(ids(computeRoadmap(profile({ sideFireTarget: 0, fullFireTarget: 0 }), side, C))).toEqual(['start', 'portBridge']);
   });
